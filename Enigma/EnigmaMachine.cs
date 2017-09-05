@@ -48,22 +48,29 @@ namespace Enigma
         /// <returns>The encrypted number.</returns>
         public byte Encrypt(byte input)
         {
-            //run through rotors
+            //turn the first rotor
             for (int i = 0; i < _rotors.Length; i++) {
-                //run this 
-                bool turn = _rotors[i].Apply(input, out input);
+                //turn rotor i
+                bool wrap = _rotors[i].Turn();
 
-                //turn the next rotor if the previous one wrapped around
-                if (turn && i < _rotors.Length - 1)
-                    _rotors[i].Turn();
+                //if it does not wrap around, we're done
+                if (!wrap) break;
+
+                //if we are at the final rotor, wrapping doesn't matter
+                if (i >= _rotors.Length - 2) break;
+            }
+
+            //run through all rotors
+            for (int i = 0; i < _rotors.Length; i++) {
+                _rotors[i].Apply(input, out input);
             }
 
             //run through the reflector
             _reflector.Apply(input, out input);
 
-            //run it through again, but in reverse
+            //run it all rotors in reverse
             for (int i = _rotors.Length - 1; i >= 0; i--) {
-                _rotors[i].ApplyNoTurn(input, out input);
+                _rotors[i].Apply(input, out input);
             }
 
             return input;
@@ -79,7 +86,7 @@ namespace Enigma
             /// <summary>
             /// At what index this rotor has. Initial setting is the equivalent of an IV or seed.
             /// </summary>
-            private int _setting = 0;
+            private byte _setting = 0;
 
             /// <summary>
             /// Initialize a rotor that mirrors the input. <para/>
@@ -98,34 +105,25 @@ namespace Enigma
             }
 
             /// <summary>
-            /// Apply the "crypto" to an input number and turns the rotor.
+            /// Apply the "crypto" to an input number.
             /// </summary>
             /// <param name="input">Input number between 0 and <see cref="_pinConnections"/>.Length.</param>
             /// <param name="output">The output number, between 0 and <see cref="_pinConnections"/>.Length.</param>
-            /// <returns>Wether the rotor's index wrapped around.</returns>
-            public bool Apply(byte input, out byte output)
+            public void Apply(byte input, out byte output)
             {
-                //note: the machine first turns, and then makes a connection.
-                bool turn = Turn();
-                output = _pinConnections[input];
-                return turn;
-            }
+                //get the index of connection we're passing through
+                int connection = (input + _setting) % _pinConnections.Length;
 
-            /// <summary>
-            /// Apply the "crypto" to an input number without turning the rotor. This is used for going in reverse.
-            /// </summary>
-            /// <param name="input">Input number between 0 and <see cref="_pinConnections"/>.Length.</param>
-            /// <param name="output">The output number, between 0 and <see cref="_pinConnections"/>.Length.</param>
-            public void ApplyNoTurn(byte input, out byte output)
-            {
-                output = _pinConnections[input];
+                //return what this resolves to
+                //not sure how to explain this math
+                output = (byte)((_pinConnections[connection] - _setting + _pinConnections.Length) % _pinConnections.Length);
             }
 
             /// <summary>
             /// Turn the rotor.
             /// </summary>
-            /// <returns>Wether the rotor's index wrapped around.</returns>
-            public virtual bool Turn()
+            /// <returns>Whether the rotor's index wrapped around.</returns>
+            public bool Turn()
             {
                 if (++_setting > _pinConnections.Length - 1) {  //-1 because arrays are zero-indexed
                     _setting = 0;
