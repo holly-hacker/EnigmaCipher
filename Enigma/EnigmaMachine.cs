@@ -11,6 +11,25 @@ namespace Enigma
         private Reflector _reflector = new Reflector();
 
         /// <summary>
+        /// Creates an Enigma machine with pass-through rotors and a rot13 reflector. <para/>
+        /// Warning: This is very insecure as it only serves as a rot13 cipher. Please pass some parameters.
+        /// </summary>
+        public EnigmaMachine() { }
+
+        /// <summary>
+        /// Creates an Enigma machine with the specified reflector and rotors.<para/>Presets can be found in 
+        /// <see cref="Constants"/>.
+        /// </summary>
+        /// <param name="reflector">The reflector that gets used after</param>
+        /// <param name="rotors">The list of rotors. Usually 3 are used, sometimes 4. <para/>Presets can be found in 
+        /// <see cref="Constants"/>.</param>
+        public EnigmaMachine(Reflector reflector, params Rotor[] rotors)
+        {
+            _rotors = rotors;
+            _reflector = reflector;
+        }
+
+        /// <summary>
         /// Encrypts the input string, character by character.
         /// </summary>
         /// <param name="input">An alphabetic string.</param>
@@ -70,7 +89,7 @@ namespace Enigma
 
             //run it all rotors in reverse
             for (int i = _rotors.Length - 1; i >= 0; i--) {
-                _rotors[i].Apply(input, out input);
+                _rotors[i].Apply(input, out input, true);
             }
 
             return input;
@@ -133,14 +152,14 @@ namespace Enigma
             /// </summary>
             /// <param name="input">Input number between 0 and <see cref="_pinConnections"/>.Length.</param>
             /// <param name="output">The output number, between 0 and <see cref="_pinConnections"/>.Length.</param>
-            public void Apply(byte input, out byte output)
+            public void Apply(byte input, out byte output, bool reverse = false)
             {
                 //get the index of connection we're passing through
                 int connection = (input + _setting) % _pinConnections.Length;
 
                 //return what this resolves to
                 //not sure how to explain this math
-                output = (byte)((_pinConnections[connection] - _setting + _pinConnections.Length) % _pinConnections.Length);
+                output = (byte)(((reverse ? _pinConnections.ToList().IndexOf((byte)connection) : _pinConnections[connection]) - _setting + _pinConnections.Length) % _pinConnections.Length);
             }
 
             /// <summary>
@@ -149,7 +168,7 @@ namespace Enigma
             /// <returns>Whether the rotor's index wrapped around.</returns>
             public bool Turn()
             {
-                if (++_setting > _pinConnections.Length - 1) {  //-1 because arrays are zero-indexed
+                if (++_setting >= _pinConnections.Length - 1) {  //-1 because arrays are zero-indexed
                     _setting = 0;
                     return true;
                 }
