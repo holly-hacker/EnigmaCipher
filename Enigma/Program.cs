@@ -2,11 +2,13 @@
 
 namespace Enigma
 {
-    class Program
+    internal class Program
     {
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            var machine = new EnigmaMachine();
+            Console.WriteLine(machine.Encrypt(args.Length == 1 ? args[0] : "teststring"));
+            Console.Read();
         }
     }
 }
