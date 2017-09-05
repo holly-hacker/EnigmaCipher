@@ -76,6 +76,25 @@ namespace Enigma
             return input;
         }
 
+        /// <summary>
+        /// Turn the rotors to certain positions. This is the equivalent of setting an IV/a seed.
+        /// </summary>
+        /// <param name="positions">What positions to set the rotors to. May not be out of range.</param>
+        public void TurnTo(params byte[] positions)
+        {
+            if (_rotors.Length != positions.Length)
+                throw new ArgumentException("The amount of parameters and the amount of rotors do not match.", nameof(positions));
+
+            for (int i = 0; i < positions.Length; i++) {
+                if (positions[i] < 0)
+                    throw new ArgumentOutOfRangeException($"Parameter {i} (zero-based) is less than zero.");
+                if (positions[i] > _rotors[i].AmountOfConnections)
+                    throw new ArgumentOutOfRangeException($"Parameter {i} (zero-based) is too large, this rotor only has {_rotors[i].AmountOfConnections} connections.");
+
+                _rotors[i].TurnTo(positions[i]);
+            }
+        }
+
         public class Rotor
         {
             /// <summary>
@@ -87,6 +106,11 @@ namespace Enigma
             /// At what index this rotor has. Initial setting is the equivalent of an IV or seed.
             /// </summary>
             private byte _setting = 0;
+
+            /// <summary>
+            /// The amount of pins connections this rotor has.
+            /// </summary>
+            public int AmountOfConnections => _pinConnections.Length;
 
             /// <summary>
             /// Initialize a rotor that mirrors the input. <para/>
@@ -130,6 +154,15 @@ namespace Enigma
                     return true;
                 }
                 return false;
+            }
+
+            /// <summary>
+            /// Sets the rotor to a position.
+            /// </summary>
+            /// <param name="pos">The position to turn to.</param>
+            public void TurnTo(byte pos)
+            {
+                _setting = pos;
             }
         }
 
